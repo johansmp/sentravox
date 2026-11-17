@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Requerido por SpeechRecognizer (STT). Sin este permiso onError() devuelve
+         ERROR_INSUFFICIENT_PERMISSIONS y no se emite ninguna transcripción. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <!-- Distinguir un desconocido de un contacto guardado. Sin este permiso se
+         cae a `callerDisplayName`, que casi nunca trae nada. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- Poner la llamada en altavoz: única forma de acoplar la voz del agente
+         al canal de la llamada sin privilegios de sistema. -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Aviso de llamada entrante atendida por el agente (Android 13+). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Abrir la pantalla del agente con la app en segundo plano: es la única
+         vía admitida para UI de llamada entrante. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+            <data android:mimeType="text/plain" />
+        </intent>
+        <!-- Visibilidad de paquetes (Android 11+): sin esto el servicio de
+             reconocimiento de voz no es visible y createSpeechRecognizer falla. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
+    <application
+        android:name="${applicationName}"
+        android:extractNativeLibs="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="sentravox">
+
+        <!-- Servicio de screening.
+
+             El permiso tiene que ser EXACTAMENTE
+             `android.permission.BIND_SCREENING_SERVICE`. Antes decía
+             `BIND_CALL_SCREENING_SERVICE`, que no existe: con un nombre de
+             permiso inválido el sistema no reconoce el servicio como protegido,
+             SentraVox no es candidato válido a ROLE_CALL_SCREENING y el diálogo
+             del rol no concede nada —el síntoma era «no deja conceder el
+             permiso de filtrar llamadas»—. Tampoco va en <uses-permission>:
+             es el permiso que el sistema exige tener para poder enlazarse a
+             este servicio, no uno que la app solicite. -->
+        <service
+            android:name="com.sentravox.sentravox.call.AgentCallScreeningService"
+            android:exported="true"
+            android:permission="android.permission.BIND_SCREENING_SERVICE">
+            <intent-filter>
+                <action android:name="android.telecom.CallScreeningService" />
+            </intent-filter>
+        </service>
+
+        <!-- MainActivity -->
+        <activity
+            android:name="com.sentravox.sentravox.MainActivity"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:exported="true"
+            android:hardwareAccelerated="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:windowSoftInputMode="adjustResize"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true">
+
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
+
+            <!-- Dialer intents -->
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+                <action android:name="android.intent.action.CALL" />
+                <action android:name="android.intent.action.CALL_PRIVILEGED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.INCOMING_CALL" />
+            </intent-filter>
+
+            <!-- Launcher -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- TODO: InCallActivity y SentraVoxInCallService todavía no existen en
+             ninguna parte del código Kotlin. Declararlos aquí provoca
+             ClassNotFoundException si el sistema intenta instanciarlos, así que
+             quedan comentados hasta que se implementen.
+
+        <activity
+            android:name="com.sentravox.sentravox.call.InCallActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:theme="@style/LaunchTheme">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name="com.sentravox.sentravox.call.SentraVoxInCallService"
+            android:permission="android.permission.BIND_INCALL_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.telecom.InCallService" />
+            </intent-filter>
+        </service>
+        -->
+
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+
+    </application>
+
+</manifest>
